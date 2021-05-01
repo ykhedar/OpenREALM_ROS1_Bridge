@@ -38,7 +38,7 @@ endif()
 
 find_package(PCL 1.8 REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
-find_package(CGAL)
+# find_package(CGAL)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -118,7 +118,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         ${catkin_LIBRARIES}
         ${cmake_modules_LIBRARIES}
         ${OpenCV_LIBRARIES}
-	    CGAL::CGAL
         Eigen3::Eigen
         realm_stages
         pthread
