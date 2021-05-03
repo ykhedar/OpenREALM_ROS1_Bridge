@@ -24,10 +24,10 @@
 #include <fstream>
 #include <iostream>
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <eigen3/Eigen/Eigen>
 #include <opencv2/core/eigen.hpp>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <cv_bridge/cv_bridge.h>
 #include <geodesy/wgs84.h>
 #include <geodesy/utm.h>
@@ -42,13 +42,13 @@
 #include <OpenREALM/realm_core/analysis.h>
 #include <OpenREALM/realm_core/depthmap.h>
 
-#include <std_msgs/Float32.h>
-#include <std_msgs/ColorRGBA.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/image_encodings.h>
-#include <visualization_msgs/Marker.h>
+#include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/color_rgba.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <realm_msgs/Frame.h>
 #include <realm_msgs/Pinhole.h>
 #include <realm_msgs/CvGridMap.h>
@@ -75,7 +75,7 @@ std::vector<Face> fixRvizMeshFlickerBug(const std::vector<Face> &faces, const tf
  * @param cv_img OpenCV type image cv::Mat
  * @return cv_bridge type image CvImage
  */
-cv_bridge::CvImage image(const std_msgs::Header &header, const cv::Mat &cv_img);
+cv_bridge::CvImage image(const std_msgs::msg::Header &header, const cv::Mat &cv_img);
 
 /*!
  * @brief Converter from realm image cv::Mat to cv_bridge image type for display purposes. Changes the color encoding
@@ -84,7 +84,7 @@ cv_bridge::CvImage image(const std_msgs::Header &header, const cv::Mat &cv_img);
  * @param cv_img OpenCV type image cv::Mat
  * @return cv_bridge type image CvImage
  */
-cv_bridge::CvImage imageDisplay(const std_msgs::Header &header, const cv::Mat &cv_img);
+cv_bridge::CvImage imageDisplay(const std_msgs::msg::Header &header, const cv::Mat &cv_img);
 
 /*!
  * @brief Converter from realm utm to ros geodesy utm type.
@@ -105,21 +105,21 @@ geographic_msgs::GeoPoint wgs84(const realm::UTMPose &r_utm);
  * @param msg Geometry msg in ROS type pose msg
  * @return Transform
  */
-tf::Transform tf(const geometry_msgs::Pose &msg);
+tf2_ros::Transform tf(const geometry_msgs::msg::Pose &msg);
 
 /*!
  * @brief Converter for OpenCV/REALM pose to ROS transform.
  * @param cv_pose Currently only (3x4) matrix (R|t) containing pose information supported.
  * @return ROS transform
  */
-tf::Transform tf(const cv::Mat &cv_pose);
+tf2_ros::Transform tf(const cv::Mat &cv_pose);
 
 /*!
  * @brief Converter for OpenCV rotation matrix into ROS Quaternion
  * @param R 3x3 rotation matrix
  * @return ROS::tf quaternion
  */
-tf::Quaternion quaternion(const cv::Mat &R);
+tf2_ros::Quaternion quaternion(const cv::Mat &R);
 
 /*!
  * @brief Converter for OpenCV/REALM matrix to 4x4 matrix. Is used for homogenous transformation, because ROS tf can
@@ -134,14 +134,14 @@ realm_msgs::Georeference georeference(const cv::Mat &mat);
  * @param T Transformation as cv::Mat
  * @return ROS transform message
  */
-geometry_msgs::Transform tfMsg(const cv::Mat &T);
+geometry_msgs::msg::Transform tfMsg(const cv::Mat &T);
 
 /*!
  * @brief Converter for ROS pose to ROS transform with timestamp. Mainly used for visualization
  * @param msg Geometry msg in ROS type pose msg
  * @return Transform with current timestamp
  */
-tf::StampedTransform tfStamped(const geometry_msgs::PoseStamped &msg);
+tf2_ros::StampedTransform tfStamped(const geometry_msgs::msg::PoseStamped &msg);
 
 /*!
  * @brief Converter for realm point cloud as cv::Mat with row(i) = (x,y,z,r,g,b,nx,ny,nz) where at least nx,ny,nz are
@@ -150,7 +150,7 @@ tf::StampedTransform tfStamped(const geometry_msgs::PoseStamped &msg);
  * @param points Point cloud as cv::Mat
  * @return ROS message point cloud
  */
-sensor_msgs::PointCloud2 pointCloud(const std_msgs::Header &header, const cv::Mat &points);
+sensor_msgs::msg::PointCloud2 pointCloud(const std_msgs::msg::Header &header, const cv::Mat &points);
 
 /*!
  * @brief Converter for realm pinhole camera to ROS message
@@ -169,7 +169,7 @@ realm_msgs::Pinhole pinhole(const realm::camera::Pinhole::ConstPtr &cam);
  * @param mask Mask might be set to only extract a certain valid region of img
  * @return ROS message ground image
  */
-realm_msgs::GroundImageCompressed groundImage(const std_msgs::Header &header,
+realm_msgs::GroundImageCompressed groundImage(const std_msgs::msg::Header &header,
                                               const cv::Mat &img,
                                               const realm::UTMPose &ulc,
                                               double GSD,
@@ -180,7 +180,7 @@ realm_msgs::GroundImageCompressed groundImage(const std_msgs::Header &header,
  * @param depthmap Depthmap data in realm container
  * @return ROS message
  */
-realm_msgs::Depthmap depthmap(const std_msgs::Header &header, const realm::Depthmap::Ptr &depthmap);
+realm_msgs::Depthmap depthmap(const std_msgs::msg::Header &header, const realm::Depthmap::Ptr &depthmap);
 
 /*!
  * @brief Converter for realm/OpenCV pose to ROS geometry message. Pose M is defined as 3x4 matrix with
@@ -189,7 +189,7 @@ realm_msgs::Depthmap depthmap(const std_msgs::Header &header, const realm::Depth
  * @param cv_pose (3x4) opencv mat type
  * @return ROS message pose with translation (x = Easting, y = Northing, z = Altitude)
  */
-geometry_msgs::Pose pose(const cv::Mat &cv_pose);
+geometry_msgs::msg::Pose pose(const cv::Mat &cv_pose);
 
 /*!
  * @brief Converter for TF transform to ROS geometry message. Pose M is defined as 3x4 matrix with
@@ -198,7 +198,7 @@ geometry_msgs::Pose pose(const cv::Mat &cv_pose);
  * @param transform (3x4) tf::transform with quaternion and translation
  * @return ROS message pose with translation (x = Easting, y = Northing, z = Altitude)
  */
-geometry_msgs::Pose pose(const tf::Transform &transform);
+geometry_msgs::msg::Pose pose(const tf2_ros::Transform &transform);
 
 /*!
  * @brief Converter for realm/OpenCV pose to ROS geometry message. Pose M is defined as 3x4 matrix with
@@ -209,7 +209,7 @@ geometry_msgs::Pose pose(const tf::Transform &transform);
  * @param band Band of the utm translation vector
  * @return ROS message pose with translation (x = Easting, y = Northing, z = Altitude)
  */
-geometry_msgs::Pose poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char band);
+geometry_msgs::msg::Pose poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char band);
 
 /*!
  * @brief Converter for realm CvGridMap to ROS message
@@ -217,7 +217,7 @@ geometry_msgs::Pose poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char band);
  * @param map CvGridMap to be converted to a ROS message
  * @return ROS message of CvGridMap
  */
-realm_msgs::CvGridMap cvGridMap(const std_msgs::Header &header, const realm::CvGridMap::Ptr &map);
+realm_msgs::CvGridMap cvGridMap(const std_msgs::msg::Header &header, const realm::CvGridMap::Ptr &map);
 
 /*!
  * @brief Converter for realm frame to ROS message. "Frame" is the basic type exchanged between different stages and
@@ -226,7 +226,7 @@ realm_msgs::CvGridMap cvGridMap(const std_msgs::Header &header, const realm::CvG
  * @param frame Pointer to frame
  * @return ROS message of Frame
  */
-realm_msgs::Frame frame(const std_msgs::Header &header, const realm::Frame::Ptr &frame);
+realm_msgs::Frame frame(const std_msgs::msg::Header &header, const realm::Frame::Ptr &frame);
 
 /*!
  * @brief Converter for realm mesh (vector of faces) to ROS visualization message.
@@ -238,13 +238,13 @@ realm_msgs::Frame frame(const std_msgs::Header &header, const realm::Frame::Ptr 
  * @param action Action to take for the mesh (update, add, ...)
  * @return ROS message of mesh
  */
-visualization_msgs::Marker meshMarker(const std_msgs::Header &header,
+visualization_msgs::msg::Marker meshMarker(const std_msgs::msg::Header &header,
                                       const std::vector<Face> &faces,
                                       const std::string &ns,
                                       int32_t id,
                                       int32_t type,
                                       int32_t action,
-                                      const tf::Transform &T);
+                                      const tf2_ros::Transform &T);
 
 } // namespace to_ros
 
@@ -257,7 +257,7 @@ namespace to_realm
  * @param heading Heading info of the camera
  * @return REALM utm type
  */
-UTMPose utm(const sensor_msgs::NavSatFix &gnss, const std_msgs::Float32 &heading = std_msgs::Float32());
+UTMPose utm(const sensor_msgs::msg::NavSatFix &gnss, const std_msgs::msg::Float32 &heading = std_msgs::msg::Float32());
 
 /*!
  * @brief Converter for ROS frame message to realm type. "Frame" is the basic type exchanged between different stages and
@@ -279,7 +279,7 @@ camera::Pinhole::Ptr pinhole(const realm_msgs::Pinhole &msg);
  * @param ros_pose ROS pose with R and t
  * @return (3x4) mat with M = (R|t)
  */
-cv::Mat pose(const geometry_msgs::Pose &ros_pose);
+cv::Mat pose(const geometry_msgs::msg::Pose &ros_pose);
 
 /*!
  * @brief Converter for tf::transform to opencv/REALM pose type.
@@ -289,24 +289,24 @@ cv::Mat pose(const geometry_msgs::Pose &ros_pose);
 cv::Mat pose(const tf::Transform &transform);
 
 /*!
- * @brief Converter for geometry_msgs::Transform to opencv/REALM 4x4 pose mat
- * @param msg geometry_msgs::Transform with R and t
+ * @brief Converter for geometry_msgs::msg::Transform to opencv/REALM 4x4 pose mat
+ * @param msg geometry_msgs::msg::Transform with R and t
  * @return (4x4) mat with
  *          (R | t)
  *          (0 | 1)
  */
-cv::Mat tf(const geometry_msgs::Transform &msg);
+cv::Mat tf(const geometry_msgs::msg::Transform &msg);
 
 /*!
  * @brief Converter for quaternion msg to opencv 3x3 rotation matrix
  * @param msg Quaternion msg
  * @return 3x3 rotation matrix
  */
-cv::Mat orientation(const geometry_msgs::Quaternion &msg);
+cv::Mat orientation(const geometry_msgs::msg::Quaternion &msg);
 
 /*!
- * @brief Converter for std_msgs::Float64MultiArray to opencv/REALM 4x4 matrix
- * @param msg std_msgs::Float64MultiArray containing 16 elements
+ * @brief Converter for std_msgs::msg::Float64MultiArray to opencv/REALM 4x4 matrix
+ * @param msg std_msgs::msg::Float64MultiArray containing 16 elements
  * @return (4x4) mat
  */
 cv::Mat georeference(const realm_msgs::Georeference &msg);
@@ -317,21 +317,21 @@ cv::Mat georeference(const realm_msgs::Georeference &msg);
  * @param msg ROS message for cv_bridge mat type
  * @return REALM point cloud with dim (nx3) or (nx9)
  */
-cv::Mat pointCloud(const sensor_msgs::Image &msg);
+cv::Mat pointCloud(const sensor_msgs::msg::Image &msg);
 
 /*!
  * @brief Converter for ROS image message to opencv/REALM mat type
  * @param msg ROS message of image
  * @return REALM image
  */
-cv::Mat image(const sensor_msgs::Image &msg);
+cv::Mat image(const sensor_msgs::msg::Image &msg);
 
 /*!
  * @brief Converter for ROS image compressed message to opencv/REALM mat type
  * @param msg ROS message of compressed image
  * @return REALM image
  */
-cv::Mat imageCompressed(const sensor_msgs::CompressedImage &msg);
+cv::Mat imageCompressed(const sensor_msgs::msg::CompressedImage &msg);
 
 /*!
  * @brief Converter for ROS CvGridMap message to REALM CvGridMap type

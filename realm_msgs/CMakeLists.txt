@@ -1,45 +1,77 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.5)
 project(realm_msgs)
 
-find_package(catkin REQUIRED COMPONENTS
-        roscpp
-        std_msgs
-        geometry_msgs
-        sensor_msgs
-        message_generation
-)
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-add_message_files(
-  FILES
-  Frame.msg
-  Georeference.msg
-  GroundImageCompressed.msg
-  Pinhole.msg
-  CvGridMap.msg
-  Depthmap.msg
-)
+find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-add_service_files(
-  FILES
-  ParameterChange.srv
-)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-)
+ament_export_dependencies(rosidl_default_runtime)
 
-####################
-## Catkin Package ##
-####################
+set(msg_files 
+      msg/Frame.msg 
+      msg/Georeference.msg 
+      msg/GroundImageCompressed.msg 
+      msg/Pinhole.msg
+      msg/CvGridMap.msg 
+      msg/Depthmap.msg
+      )
+set(srv_files srv/ParameterChange.srv)
 
-catkin_package(
-        CATKIN_DEPENDS
-            roscpp
-            std_msgs
-            sensor_msgs
-            geometry_msgs
-            message_runtime
-)
+rosidl_generate_interfaces(${PROJECT_NAME} 
+    ${msg_files} 
+    ${srv_files}
+    DEPENDENCIES builtin_interfaces
+    )
+                
+set(INCLUDE_DIRS 
+  ${ament_cmake_INCLUDE_DIRS}
+  ${rosidl_default_generators_INCLUDE_DIRS} 
+  ${rclcpp_INCLUDE_DIRS}
+  ${std_msgs_INCLUDE_DIRS} 
+  ${geometry_msgs_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS})
+
+include_directories(${INCLUDE_DIRS})
+
+set(LIBRARY_DIRS 
+  ${ament_cmake_LIBRARY_DIRS}
+  ${rosidl_default_generators_LIBRARY_DIRS} 
+  ${rclcpp_LIBRARY_DIRS}
+  ${std_msgs_LIBRARY_DIRS} 
+  ${geometry_msgs_LIBRARY_DIRS}
+  ${sensor_msgs_LIBRARY_DIRS})
+
+link_directories(${LIBRARY_DIRS})
+
+set(LIBS 
+    ${ament_cmake_LIBRARIES} 
+    ${rosidl_default_generators_LIBRARIES}
+    ${rclcpp_LIBRARIES} 
+    ${std_msgs_LIBRARIES} 
+    ${geometry_msgs_LIBRARIES}
+    ${sensor_msgs_LIBRARIES})
+
+
+ament_export_dependencies(rosidl_default_runtime)
+ament_export_dependencies(ament_cmake)
+ament_export_dependencies(rosidl_default_generators)
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(std_msgs)
+ament_export_dependencies(geometry_msgs)
+ament_export_dependencies(sensor_msgs)
+ament_export_include_directories(${INCLUDE_DIRS})
+
+ament_package()

@@ -24,7 +24,7 @@
 #include <iostream>
 #include <mutex>
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <ros/package.h>
 #include <rosbag/bag.h>
 #include <cv_bridge/cv_bridge.h>
@@ -39,26 +39,26 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <std_msgs/Float64.h>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/imu.h>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <realm_msgs/Frame.h>
 #include <realm_msgs/Pinhole.h>
 
 namespace realm
 {
 
-class RosGrabberNode
+class RosGrabberNode : public rclcpp::Node
 {
-  using ApproxTimePolicy = message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::NavSatFix>;
+  using ApproxTimePolicy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::NavSatFix>;
 
 public:
   explicit RosGrabberNode();
 
   void spin();
 
-  bool isOkay();
+  // bool isOkay();
 
 private:
 
@@ -99,18 +99,16 @@ private:
   std::mutex _mutex_orientation;
   cv::Mat _orientation;
 
-  ros::NodeHandle _nh;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr _sub_heading;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr _sub_relative_altitude;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr _sub_orientation;
 
-  ros::Subscriber _sub_heading;
-  ros::Subscriber _sub_relative_altitude;
-  ros::Subscriber _sub_orientation;
-
-  message_filters::Subscriber<sensor_msgs::Image> _sub_input_image;
-  message_filters::Subscriber<sensor_msgs::NavSatFix> _sub_input_gnss;
+  message_filters::Subscriber<sensor_msgs::msg::Image> _sub_input_image;
+  message_filters::Subscriber<sensor_msgs::msg::NavSatFix> _sub_input_gnss;
   message_filters::Synchronizer<ApproxTimePolicy> _sync_topics;
 
-  ros::Publisher _pub_frame;
-  ros::Publisher _pub_imu;
+  rclcpp::Publisher<realm_msgs::Frame>::SharedPtr _pub_frame;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr _pub_imu;
 
   camera::Pinhole::Ptr _cam;
   realm_msgs::Pinhole _cam_msg;
@@ -118,10 +116,10 @@ private:
   void readParameters();
   void setPaths();
 
-  void subHeading(const std_msgs::Float64 &msg);
-  void subRelativeAltitude(const std_msgs::Float64 &msg);
-  void subOrientation(const sensor_msgs::Imu &msg);
-  void subImageGnss(const sensor_msgs::ImageConstPtr &img, const sensor_msgs::NavSatFixConstPtr &gnss);
+  void subHeading(const std_msgs::msg::Float64 &msg);
+  void subRelativeAltitude(const std_msgs::msg::Float64 &msg);
+  void subOrientation(const sensor_msgs::msg::Imu &msg);
+  void subImageGnss(const sensor_msgs::msg::ImageConstPtr &img, const sensor_msgs::msg::NavSatFixConstPtr &gnss);
 
   void publish(const Frame::Ptr &frame);
 };

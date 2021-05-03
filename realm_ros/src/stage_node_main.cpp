@@ -24,13 +24,13 @@ using namespace realm;
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "realm_stage_node");
+  rclcpp::init(argc, argv);
 
-  StageNode node(argc, argv);
-  ros::Rate rate(100);
+  StageNode node(argc, argv, "realm_stage_node");
+  rclcpp::Rate rate(100);
   while (node.isOkay())
   {
-    ros::spinOnce();
+    rclcpp::spin_some(node);
     node.spin();
     rate.sleep();
   }

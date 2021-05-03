@@ -9,7 +9,7 @@
 
   <author>Hannes Harms</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <build_depend>rviz</build_depend>
   <build_depend>cv_bridge</build_depend>
@@ -22,9 +22,14 @@
   <exec_depend>geographic_msgs</exec_depend>
   <exec_depend>geodesy</exec_depend>
   <exec_depend>realm_msgs</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
 
   <export>
       <rviz plugin="${prefix}/plugin_description.xml"/>
   </export>
+
+  <export>
+  <build_type>ament_cmake</build_type>
+</export>
 
 </package>

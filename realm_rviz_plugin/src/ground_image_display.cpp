@@ -6,7 +6,7 @@
 #include <OgreTextureManager.h>
 #include <OgreTechnique.h>
 #include <OgreSharedPtr.h>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <tf/transform_listener.h>
 #include "rviz/frame_manager.h"
 #include "rviz/ogre_helpers/custom_parameter_indices.h"
@@ -23,14 +23,14 @@
 #include "ground_image_display.h"
 #include <algorithm>
 #include <iterator>
-#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/image_encodings.hpp>
 #include <rviz/view_controller.h>
 #include <rviz/view_manager.h>
 #include <rviz/render_panel.h>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/image_encodings.hpp>
 #include <image_transport/image_transport.h>
-#include <sensor_msgs/Image.h>
+#include <sensor_msgs/msg/image.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 #define BASE_STATION_FRAMEID "/realm_base"
@@ -123,7 +123,7 @@ void GroundImageDisplay::add_new_Image()
     throw(cv_bridge::Exception("Error converting compressed image!"));
   }
 
-  sensor_msgs::ImagePtr msg =
+  sensor_msgs::msg::ImagePtr msg =
       cv_bridge::CvImage(image_vec.back()->imagedata.header, sensor_msgs::image_encodings::RGBA8, img_ptr->image).toImageMsg();
 
   unsigned int numBytes = msg->height * msg->step;
@@ -224,7 +224,6 @@ void GroundImageDisplay::add_new_Image()
 
   // NOTE: Coordinates were chosen to be 0.01 and 0.99 because in RVIZ 0 and 1 resulted in a weird 1 pixel frame around
   //       the displayed image.
-
   // left top
   manual_object_local->position(Ogre::Vector3(x - wr / 2.0, y + hr / 2.0, z)); //(x, y, z));
   manual_object_local->textureCoord(0.01, 0.01);
@@ -335,7 +334,7 @@ void GroundImageDisplay::clear()
 
 void GroundImageDisplay::incomingImage(const realm_msgs::GroundImageCompressed::ConstPtr &msg)
 {
-  //ROS_INFO_STREAM("incomingImage: " << msg->imagedata.data.size());
+  //RCLCPP_INFO_STREAM(node->get_logger(),"incomingImage: " << msg->imagedata.data.size());
   image_vec
       .push_back(msg); //eventuell kann der Speicher wieder freigegeben werden nach add_new_image (noch nicht getestet)
   add_new_Image();

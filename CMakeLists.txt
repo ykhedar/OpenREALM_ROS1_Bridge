@@ -19,11 +19,12 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(OpenREALM_ROS1_Bridge)
+set(CMAKE_CXX_STANDARD 14)
 
 set(OpenREALM_ROS1_BRIDGE_VERSION "1.0")
 set(OpenREALM_ROS1_BRIDGE_VERSION_NUMBER "1000")
 
-
+find_package(rosidl_default_generators REQUIRED)
 ################################################################################
 # Include CMake dependencies
 ################################################################################
@@ -48,7 +49,6 @@ else()
     set(IS_DEBUG OFF)
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -61,7 +61,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(realm_msgs)
 add_subdirectory(realm_ros)
-add_subdirectory(realm_rviz_plugin)
+# add_subdirectory(realm_rviz_plugin)
 
 
 ################################################################################

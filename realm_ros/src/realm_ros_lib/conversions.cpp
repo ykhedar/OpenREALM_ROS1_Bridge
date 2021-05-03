@@ -23,7 +23,7 @@
 namespace realm
 {
 
-cv_bridge::CvImage to_ros::image(const std_msgs::Header &header, const cv::Mat &cv_img)
+cv_bridge::CvImage to_ros::image(const std_msgs::msg::Header &header, const cv::Mat &cv_img)
 {
   std::string encoding;
   switch (cv_img.type())
@@ -55,7 +55,7 @@ cv_bridge::CvImage to_ros::image(const std_msgs::Header &header, const cv::Mat &
   return cv_bridge::CvImage(header, encoding, cv_img);
 }
 
-cv_bridge::CvImage to_ros::imageDisplay(const std_msgs::Header &header, const cv::Mat &cv_img)
+cv_bridge::CvImage to_ros::imageDisplay(const std_msgs::msg::Header &header, const cv::Mat &cv_img)
 {
   std::string encoding;
   switch (cv_img.type())
@@ -102,7 +102,7 @@ geographic_msgs::GeoPoint to_ros::wgs84(const realm::UTMPose &r_utm)
 }
 
 
-realm::UTMPose to_realm::utm(const sensor_msgs::NavSatFix &gnss, const std_msgs::Float32 &heading)
+realm::UTMPose to_realm::utm(const sensor_msgs::msg::NavSatFix &gnss, const std_msgs::msg::Float32 &heading)
 {
   geographic_msgs::GeoPoint wgs;
   wgs.latitude = gnss.latitude;
@@ -121,24 +121,24 @@ realm::UTMPose to_realm::utm(const sensor_msgs::NavSatFix &gnss, const std_msgs:
   return r_utm;
 }
 
-tf::Transform to_ros::tf(const geometry_msgs::Pose &msg)
+tf2_ros::Transform to_ros::tf(const geometry_msgs::msg::Pose &msg)
 {
   tf::Vector3 origin(msg.position.x, msg.position.y, msg.position.z);
   tf::Quaternion quat(msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w);
   return tf::Transform(quat, origin);
 }
 
-tf::Transform to_ros::tf(const cv::Mat &cv_pose)
+tf2_ros::Transform to_ros::tf(const cv::Mat &cv_pose)
 {
-  geometry_msgs::Pose msg_pose = to_ros::pose(cv_pose);
+  geometry_msgs::msg::Pose msg_pose = to_ros::pose(cv_pose);
   return to_ros::tf(msg_pose);
 }
 
-geometry_msgs::Transform to_ros::tfMsg(const cv::Mat &T)
+geometry_msgs::msg::Transform to_ros::tfMsg(const cv::Mat &T)
 {
-  tf::Transform transform = to_ros::tf(T);
+  tf2_ros::Transform transform = to_ros::tf(T);
 
-  geometry_msgs::Transform msg;
+  geometry_msgs::msg::Transform msg;
   msg.translation.x = transform.getOrigin().x();
   msg.translation.y = transform.getOrigin().y();
   msg.translation.z = transform.getOrigin().z();
@@ -184,10 +184,10 @@ realm_msgs::Georeference to_ros::georeference(const cv::Mat &mat)
   return msg;
 }
 
-tf::StampedTransform to_ros::tfStamped(const geometry_msgs::PoseStamped &msg)
+tf2_ros::StampedTransform to_ros::tfStamped(const geometry_msgs::msg::PoseStamped &msg)
 {
-  tf::Transform transform = to_ros::tf(msg.pose);
-  tf::StampedTransform stamped_transform;
+  tf2_ros::Transform transform = to_ros::tf(msg.pose);
+  tf2_ros::StampedTransform stamped_transform;
   stamped_transform.stamp_ = msg.header.stamp;
   stamped_transform.frame_id_ = msg.header.frame_id;
   stamped_transform.setOrigin(transform.getOrigin());
@@ -195,23 +195,23 @@ tf::StampedTransform to_ros::tfStamped(const geometry_msgs::PoseStamped &msg)
   return stamped_transform;
 }
 
-tf::Quaternion to_ros::quaternion(const cv::Mat &R)
+tf2_ros::Quaternion to_ros::quaternion(const cv::Mat &R)
 {
-  tf::Matrix3x3 tf_rot(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+  tf2_ros::Matrix3x3 tf_rot(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
                        R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
                        R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2));
-  tf::Quaternion tf_quat;
+  tf2_ros::Quaternion tf_quat;
   tf_rot.getRotation(tf_quat);
 
   return tf_quat;
 }
 
-cv::Mat to_realm::orientation(const geometry_msgs::Quaternion &msg)
+cv::Mat to_realm::orientation(const geometry_msgs::msg::Quaternion &msg)
 {
-  tf::Quaternion tf_quat;
+  tf2_ros::Quaternion tf_quat;
   tf::quaternionMsgToTF(msg, tf_quat);
 
-  tf::Matrix3x3 tf_mat(tf_quat);
+  tf2_ros::Matrix3x3 tf_mat(tf_quat);
 
   cv::Mat R(3, 3, CV_64F);
   R.at<double>(0, 0) = tf_mat[0][0];
@@ -285,7 +285,7 @@ realm::camera::Pinhole::Ptr to_realm::pinhole(const realm_msgs::Pinhole &msg)
   return std::make_shared<camera::Pinhole>(cam);
 }
 
-sensor_msgs::PointCloud2 to_ros::pointCloud(const std_msgs::Header &header, const cv::Mat &points)
+sensor_msgs::msg::PointCloud2 to_ros::pointCloud(const std_msgs::msg::Header &header, const cv::Mat &points)
 {
   assert(points.cols >= 3);
 
@@ -322,13 +322,13 @@ sensor_msgs::PointCloud2 to_ros::pointCloud(const std_msgs::Header &header, cons
 
   pcl_ptr->width = (int) pcl_ptr->points.size();
   pcl_ptr->height = 1;
-  sensor_msgs::PointCloud2 pcl_msg;
+  sensor_msgs::msg::PointCloud2 pcl_msg;
   pcl::toROSMsg(*pcl_ptr, pcl_msg);
   pcl_msg.header = header;
   return pcl_msg;
 }
 
-geometry_msgs::Pose to_ros::pose(const cv::Mat &cv_pose)
+geometry_msgs::msg::Pose to_ros::pose(const cv::Mat &cv_pose)
 {
   tf::Vector3 tf_pos_vec(cv_pose.at<double>(0, 3), cv_pose.at<double>(1, 3), cv_pose.at<double>(2, 3));
 
@@ -338,7 +338,7 @@ geometry_msgs::Pose to_ros::pose(const cv::Mat &cv_pose)
 
   tf::Transform tf_pose(tf_rot_mat, tf_pos_vec);
 
-  geometry_msgs::Pose msg_pose;
+  geometry_msgs::msg::Pose msg_pose;
   msg_pose.position.x = tf_pos_vec.getX();
   msg_pose.position.y = tf_pos_vec.getY();
   msg_pose.position.z = tf_pos_vec.getZ();
@@ -350,9 +350,9 @@ geometry_msgs::Pose to_ros::pose(const cv::Mat &cv_pose)
   return msg_pose;
 }
 
-geometry_msgs::Pose to_ros::pose(const tf::Transform &transform)
+geometry_msgs::msg::Pose to_ros::pose(const tf::Transform &transform)
 {
-  geometry_msgs::Pose pose;
+  geometry_msgs::msg::Pose pose;
   pose.position.x = transform.getOrigin().x();
   pose.position.y = transform.getOrigin().y();
   pose.position.z = transform.getOrigin().z();
@@ -365,11 +365,11 @@ geometry_msgs::Pose to_ros::pose(const tf::Transform &transform)
 
 cv::Mat to_realm::pose(const tf::Transform &transform)
 {
-  geometry_msgs::Pose ros_pose = to_ros::pose(transform);
+  geometry_msgs::msg::Pose ros_pose = to_ros::pose(transform);
   return to_realm::pose(ros_pose);
 }
 
-cv::Mat to_realm::tf(const geometry_msgs::Transform &msg)
+cv::Mat to_realm::tf(const geometry_msgs::msg::Transform &msg)
 {
   tf::Vector3 p(msg.translation.x, msg.translation.y, msg.translation.z);
   tf::Quaternion quat(msg.rotation.x, msg.rotation.y, msg.rotation.z, msg.rotation.w);
@@ -395,12 +395,12 @@ cv::Mat to_realm::georeference(const realm_msgs::Georeference &msg)
   return T_euclidean;
 }
 
-geometry_msgs::Pose to_ros::poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char band)
+geometry_msgs::msg::Pose to_ros::poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char band)
 {
-  geometry_msgs::Pose utm_pose = to_ros::pose(cv_pose);
+  geometry_msgs::msg::Pose utm_pose = to_ros::pose(cv_pose);
   geodesy::UTMPoint utm(utm_pose.position.x, utm_pose.position.y, utm_pose.position.z, zone, band);
   geographic_msgs::GeoPoint wgs = geodesy::toMsg(utm);
-  geometry_msgs::Pose wgs_pose;
+  geometry_msgs::msg::Pose wgs_pose;
   wgs_pose.position.x = wgs.longitude;
   wgs_pose.position.y = wgs.latitude;
   wgs_pose.position.z = wgs.altitude;
@@ -409,7 +409,7 @@ geometry_msgs::Pose to_ros::poseWgs84(const cv::Mat &cv_pose, uint8_t zone, char
 }
 
 
-cv::Mat to_realm::pose(const geometry_msgs::Pose &ros_pose)
+cv::Mat to_realm::pose(const geometry_msgs::msg::Pose &ros_pose)
 {
   tf::Vector3 p(ros_pose.position.x, ros_pose.position.y, ros_pose.position.z);
   tf::Quaternion quat(ros_pose.orientation.x, ros_pose.orientation.y, ros_pose.orientation.z, ros_pose.orientation.w);
@@ -424,7 +424,7 @@ cv::Mat to_realm::pose(const geometry_msgs::Pose &ros_pose)
   return cv_pose;
 }
 
-realm_msgs::Frame to_ros::frame(const std_msgs::Header &header, const realm::Frame::Ptr &frame)
+realm_msgs::Frame to_ros::frame(const std_msgs::msg::Header &header, const realm::Frame::Ptr &frame)
 {
   realm_msgs::Frame msg;
 
@@ -483,7 +483,7 @@ realm_msgs::Frame to_ros::frame(const std_msgs::Header &header, const realm::Fra
   return msg;
 }
 
-realm_msgs::GroundImageCompressed to_ros::groundImage(const std_msgs::Header &header,
+realm_msgs::GroundImageCompressed to_ros::groundImage(const std_msgs::msg::Header &header,
                                                       const cv::Mat &img,
                                                       const realm::UTMPose &ulc,
                                                       double GSD,
@@ -507,7 +507,7 @@ realm_msgs::GroundImageCompressed to_ros::groundImage(const std_msgs::Header &he
   return msg;
 }
 
-realm_msgs::Depthmap to_ros::depthmap(const std_msgs::Header &header, const realm::Depthmap::Ptr &depthmap)
+realm_msgs::Depthmap to_ros::depthmap(const std_msgs::msg::Header &header, const realm::Depthmap::Ptr &depthmap)
 {
   realm_msgs::Depthmap msg;
   msg.header = header;
@@ -539,17 +539,17 @@ std::vector<Face> to_ros::fixRvizMeshFlickerBug(const std::vector<realm::Face> &
   return faces_fixed;
 }
 
-visualization_msgs::Marker to_ros::meshMarker(const std_msgs::Header &header,
+visualization_msgs::msg::Marker to_ros::meshMarker(const std_msgs::msg::Header &header,
                                               const std::vector<Face> &faces,
                                               const std::string &ns,
                                               int32_t id,
                                               int32_t type,
                                               int32_t action,
-                                              const tf::Transform &T)
+                                              const tf2_ros::Transform &T)
 {
   std::vector<Face> faces_fixed = fixRvizMeshFlickerBug(faces, T);
 
-  visualization_msgs::Marker msg;
+  visualization_msgs::msg::Marker msg;
   msg.header = header;
   msg.ns = "Global Map";
   msg.id = id;
@@ -579,34 +579,34 @@ visualization_msgs::Marker to_ros::meshMarker(const std_msgs::Header &header,
     if (cv::norm(face.vertices[1] - face.vertices[2]) > 5.0)
       continue;
 
-    geometry_msgs::Point pt1;
+    geometry_msgs::msg::Point pt1;
     pt1.x = face.vertices[0].x;
     pt1.y = face.vertices[0].y;
     pt1.z = face.vertices[0].z;
 
-    std_msgs::ColorRGBA rgba1;
+    std_msgs::msg::ColorRGBA rgba1;
     rgba1.b = static_cast<float>(face.color[0][0])/255.0f;
     rgba1.g = static_cast<float>(face.color[0][1])/255.0f;
     rgba1.r = static_cast<float>(face.color[0][2])/255.0f;
     rgba1.a = 1.0;
 
-    geometry_msgs::Point pt2;
+    geometry_msgs::msg::Point pt2;
     pt2.x = face.vertices[1].x;
     pt2.y = face.vertices[1].y;
     pt2.z = face.vertices[1].z;
 
-    std_msgs::ColorRGBA rgba2;
+    std_msgs::msg::ColorRGBA rgba2;
     rgba2.b = static_cast<float>(face.color[1][0])/255.0f;
     rgba2.g = static_cast<float>(face.color[1][1])/255.0f;
     rgba2.r = static_cast<float>(face.color[1][2])/255.0f;
     rgba2.a = 1.0;
 
-    geometry_msgs::Point pt3;
+    geometry_msgs::msg::Point pt3;
     pt3.x = face.vertices[2].x;
     pt3.y = face.vertices[2].y;
     pt3.z = face.vertices[2].z;
 
-    std_msgs::ColorRGBA rgba3;
+    std_msgs::msg::ColorRGBA rgba3;
     rgba3.b = static_cast<float>(face.color[2][0])/255.0f;
     rgba3.g = static_cast<float>(face.color[2][1])/255.0f;
     rgba3.r = static_cast<float>(face.color[2][2])/255.0f;
@@ -622,14 +622,14 @@ visualization_msgs::Marker to_ros::meshMarker(const std_msgs::Header &header,
   return msg;
 }
 
-realm_msgs::CvGridMap to_ros::cvGridMap(const std_msgs::Header &header, const realm::CvGridMap::Ptr &map)
+realm_msgs::CvGridMap to_ros::cvGridMap(const std_msgs::msg::Header &header, const realm::CvGridMap::Ptr &map)
 {
   realm_msgs::CvGridMap msg;
   msg.header = header;
   msg.resolution = map->resolution();
 
   cv::Rect2d roi = map->roi();
-  geometry_msgs::Point pos;
+  geometry_msgs::msg::Point pos;
   pos.x = roi.x;
   pos.y =  roi.y;
   pos.z = 0.0;
@@ -638,7 +638,7 @@ realm_msgs::CvGridMap to_ros::cvGridMap(const std_msgs::Header &header, const re
   msg.length_y = roi.height;
 
   std::vector<std::string> layer_names = map->getAllLayerNames();
-  std::vector<sensor_msgs::Image> layer_data;
+  std::vector<sensor_msgs::msg::Image> layer_data;
   for (const auto &layer_name : layer_names)
   {
     cv_bridge::CvImage img = to_ros::image(header, (*map)[layer_name]);
@@ -649,7 +649,7 @@ realm_msgs::CvGridMap to_ros::cvGridMap(const std_msgs::Header &header, const re
   return msg;
 }
 
-cv::Mat realm::to_realm::pointCloud(const sensor_msgs::Image &msg)
+cv::Mat realm::to_realm::pointCloud(const sensor_msgs::msg::Image &msg)
 {
   cv::Mat point_cloud;
   try
@@ -663,7 +663,7 @@ cv::Mat realm::to_realm::pointCloud(const sensor_msgs::Image &msg)
   return point_cloud;
 }
 
-cv::Mat realm::to_realm::image(const sensor_msgs::Image &msg)
+cv::Mat realm::to_realm::image(const sensor_msgs::msg::Image &msg)
 {
   cv_bridge::CvImagePtr img_ptr;
   try
@@ -677,7 +677,7 @@ cv::Mat realm::to_realm::image(const sensor_msgs::Image &msg)
   return img_ptr->image;
 }
 
-cv::Mat realm::to_realm::imageCompressed(const sensor_msgs::CompressedImage &msg)
+cv::Mat realm::to_realm::imageCompressed(const sensor_msgs::msg::CompressedImage &msg)
 {
   cv_bridge::CvImagePtr img_ptr;
   try

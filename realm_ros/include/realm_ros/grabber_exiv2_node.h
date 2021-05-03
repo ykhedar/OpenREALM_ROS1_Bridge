@@ -23,9 +23,9 @@
 
 #include <iostream>
 
-#include <ros/ros.h>
-#include <ros/package.h>
-#include <rosbag/bag.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ros/package.h> // Check this
+#include <rosbag/bag.h>  // Check this
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 #include <boost/filesystem.hpp>
@@ -35,7 +35,7 @@
 #include <realm_io/exif_import.h>
 #include <realm_io/utilities.h>
 
-#include <sensor_msgs/Image.h>
+#include <sensor_msgs/msg/image.hpp>
 #include <realm_msgs/Frame.h>
 #include <realm_msgs/Pinhole.h>
 
@@ -49,12 +49,12 @@ namespace realm
  * Exiv2 tags should at least contain the GNSS position. Tested name format is name_000000.suffix
  */
 
-class Exiv2GrabberNode
+class Exiv2GrabberNode : public rclcpp::Node
 {
   public:
     Exiv2GrabberNode();
     void spin();
-    bool isOkay();
+    // bool isOkay();
   private:
 
     bool _do_set_all_keyframes;
@@ -89,9 +89,8 @@ class Exiv2GrabberNode
 
     io::Exiv2FrameReader _exiv2_reader;
 
-    ros::NodeHandle _nh;
-    ros::Publisher _pub_frame;
-    ros::Publisher _pub_image;
+    rclcpp::Publisher<realm_msgs::Frame>::SharedPtr _pub_frame;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image;
 
     camera::Pinhole::Ptr _cam;
     realm_msgs::Pinhole _cam_msg;

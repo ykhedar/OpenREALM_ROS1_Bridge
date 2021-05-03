@@ -25,7 +25,7 @@
 #include <unordered_map>
 #include <string>
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <tf/transform_broadcaster.h>
 #include <ros/package.h>
 
@@ -43,21 +43,21 @@
 #include <OpenREALM/realm_stages/mosaicing.h>
 #include <OpenREALM/realm_stages/tileing.h>
 
-#include <std_msgs/String.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/msg/string.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/imu.h>
+#include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <nav_msgs/msg/path.h>
+#include <visualization_msgs/msg/marker.h>
+#include <geometry_msgs/msg/pose_stamped.h>
 #include <realm_ros/conversions.h>
 #include <realm_msgs/Frame.h>
 #include <realm_msgs/CvGridMap.h>
 #include <realm_msgs/GroundImageCompressed.h>
 
-#include <std_srvs/Trigger.h>
+#include <std_srvs/srv/rigger.h>
 #include <realm_msgs/ParameterChange.h>
 
 namespace realm
@@ -90,13 +90,13 @@ class StageNode
     std::string _id_camera;
 
     // ros handle
-    ros::NodeHandle _nh;
+    auto _nh = rclcpp::Node::make_shared("talker");
 
     // ros communication handles
     ros::Subscriber _sub_input_frame;
     ros::Subscriber _sub_input_imu;
     ros::Subscriber _sub_output_dir;
-    std::unordered_map<std::string, ros::Publisher> _publisher;
+    std::unordered_map<std::string, auto> _publisher;
 
     // ros service handles
     ros::ServiceServer _srv_req_finish;
@@ -138,10 +138,10 @@ class StageNode
     std::string _tf_stage_frame_name;
     tf::Transform _tf_base;
     tf::Transform _tf_stage;
-    sensor_msgs::NavSatFix _gnss_base;
+    sensor_msgs::msg::NavSatFix _gnss_base;
 
     // trajectories
-    std::unordered_map<std::string, std::vector<geometry_msgs::PoseStamped>> _trajectories;
+    std::unordered_map<std::string, std::vector<geometry_msgs::msg::PoseStamped>> _trajectories;
 
     // Settings of the stage
     StageSettings::Ptr _settings_stage;
@@ -169,8 +169,8 @@ class StageNode
 
     // ros communication functions
     void subFrame(const realm_msgs::Frame &msg);
-    void subImu(const sensor_msgs::Imu &msg);
-    void subOutputPath(const std_msgs::String &msg);
+    void subImu(const sensor_msgs::msg::Imu &msg);
+    void subOutputPath(const std_msgs::msg::String &msg);
 
     // stage callbacks
     void pubFrame(const Frame::Ptr &frame, const std::string &topic);
@@ -181,7 +181,7 @@ class StageNode
     void pubMesh(const std::vector<Face> &faces, const std::string &topic);
 
     // master publish
-    void pubTrajectory(const std::vector<geometry_msgs::PoseStamped> &traj, const std::string &topic);
+    void pubTrajectory(const std::vector<geometry_msgs::msg::PoseStamped> &traj, const std::string &topic);
 
     /*!
      * @brief Publisher for CvGridMaps as GroundImages. Should either contain one or two layers. The first layer

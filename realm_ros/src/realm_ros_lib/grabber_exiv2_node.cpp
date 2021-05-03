@@ -22,8 +22,9 @@
 
 using namespace realm;
 
-Exiv2GrabberNode::Exiv2GrabberNode()
-: _do_set_all_keyframes(false),
+Exiv2GrabberNode::Exiv2GrabberNode(std::string name)
+: Node(name),
+  _do_set_all_keyframes(false),
   _use_apriori_pose(false),
   _use_apriori_georeference(false),
   _use_apriori_surface_pts(false),
@@ -46,24 +47,24 @@ Exiv2GrabberNode::Exiv2GrabberNode()
   if (_use_apriori_pose)
   {
     _poses = io::loadTrajectoryFromTxtTUM(_filepath_poses);
-    ROS_INFO_STREAM("Succesfully loaded " << _poses.size() << " external poses.");
+    RCLCPP_INFO_STREAM(node->get_logger(),"Succesfully loaded " << _poses.size() << " external poses.");
   }
 
   // Loading georeference from file if provided
   if (_use_apriori_georeference)
   {
     _georeference = io::loadGeoreferenceFromYaml(_filepath_georeference);
-    ROS_INFO_STREAM("Succesfully loaded external georeference:\n" << _georeference);
+    RCLCPP_INFO_STREAM(node->get_logger(),"Succesfully loaded external georeference:\n" << _georeference);
   }
 
   // Loading surface points from file if provided
   if (_use_apriori_surface_pts)
   {
     _surface_pts = io::loadSurfacePointsFromTxt(_filepath_surface_pts);
-    ROS_INFO_STREAM("Succesfully loaded " << _surface_pts.rows << " external surface points.");
+    RCLCPP_INFO_STREAM(node->get_logger(),"Succesfully loaded " << _surface_pts.rows << " external surface points.");
   }
 
-  ROS_INFO_STREAM(
+  RCLCPP_INFO_STREAM(node->get_logger(),
       "Exiv2 Grabber Node [Ankommen]: Successfully loaded camera: "
           << "\n\tcx = " << _cam->cx()
           << "\n\tcy = " << _cam->cy()
@@ -76,19 +77,27 @@ Exiv2GrabberNode::Exiv2GrabberNode()
 
   // ROS related inits
   _topic_prefix = "/realm/" + _id_node;
-  _pub_frame = _nh.advertise<realm_msgs::Frame>(_topic_prefix + "/input", 5);
-  _pub_image = _nh.advertise<sensor_msgs::Image>(_topic_prefix + "/img", 5);
+
+  rclcpp::QoS qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default))
+      .history(rmw_qos_history_policy_t::RMW_QOS_POLICY_HISTORY_KEEP_LAST)
+      .keep_last(5)
+      .reliability(rmw_qos_reliability_policy_t::RMW_QOS_POLICY_RELIABILITY_RELIABLE)
+      .durability(rmw_qos_durability_policy_t::RMW_QOS_POLICY_DURABILITY_VOLATILE)
+      .avoid_ros_namespace_conventions(false);
+
+  _pub_frame = this->create_publisher<realm_msgs::Frame>(_topic_prefix+ "/input", qos_profile);
+  _pub_image = this->create_publisher<sensor_msgs::msg::Image>(_topic_prefix + "/img", qos_profile);
 
   // Start grabbing images
   _file_list = getFileList(_path_grab);
 
   // Check if the exif tags in the config exist
-  ROS_INFO("Scanning input image for provided meta tags...");
+  RCLCPP_INFO(node->get_logger(),"Scanning input image for provided meta tags...");
   std::map<std::string, bool> tag_existence = _exiv2_reader.probeImage(_file_list[0]);
   for (const auto &tag : tag_existence)
   {
     if (tag.second)
-      ROS_INFO("[FOUND]\t\t'%s'", tag.first.c_str());
+      RCLCPP_INFO(node->get_logger(),"[FOUND]\t\t'%s'", tag.first.c_str());
     else
       ROS_WARN("[NOT FOUND]\t'%s'", tag.first.c_str());
   }
@@ -96,17 +105,17 @@ Exiv2GrabberNode::Exiv2GrabberNode()
 
 void Exiv2GrabberNode::readParams()
 {
-  ros::NodeHandle param_nh("~");
-
-  param_nh.param("config/id", _id_node, std::string("uninitialised"));
-  param_nh.param("config/input", _path_grab, std::string("uninitialised"));
-  param_nh.param("config/rate", _fps, 0.0);
-  param_nh.param("config/profile", _profile, std::string("uninitialised"));
-  param_nh.param("config/opt/poses", _filepath_poses, std::string("uninitialised"));
-  param_nh.param("config/opt/georeference", _filepath_georeference, std::string("uninitialised"));
-  param_nh.param("config/opt/surface_pts", _filepath_surface_pts, std::string("uninitialised"));
-  param_nh.param("config/opt/set_all_keyframes", _do_set_all_keyframes, false);
-  param_nh.param("config/opt/working_directory", _path_working_directory, std::string("uninitialised"));
+  rclcpp::parameter_client::SyncParameterClient client(node);
+  
+  _id_node = client.get_parameter("config/id", std::string("uninitialised"));
+  _path_grab = client.get_parameter("config/input", std::string("uninitialised"));
+  _fps = client.get_parameter("config/rate", 0.0);
+  _profile = client.get_parameter("config/profile", std::string("uninitialised"));
+  _filepath_poses = client.get_parameter("config/opt/poses", std::string("uninitialised"));
+  _filepath_georeference = client.get_parameter("config/opt/georeference", std::string("uninitialised"));
+  _filepath_surface_pts = client.get_parameter("config/opt/surface_pts", std::string("uninitialised"));
+  _do_set_all_keyframes = client.get_parameter("config/opt/set_all_keyframes", false);
+  _path_working_directory = client.get_parameter("config/opt/working_directory", std::string("uninitialised"));
 
   if (_fps < 0.01)
     throw(std::invalid_argument("Error reading exiv2 grabber parameters: Frame rate is too low!"));
@@ -136,10 +145,10 @@ void Exiv2GrabberNode::setPaths()
 
 void Exiv2GrabberNode::spin()
 {
-  ros::Rate rate(_fps);
+  rclcpp::Rate rate(_fps);
   if (_id_curr_file < _file_list.size())
   {
-    ROS_INFO_STREAM("Image #" << _id_curr_file << ", image Path: " << _file_list[_id_curr_file]);
+    RCLCPP_INFO_STREAM(node->get_logger(),"Image #" << _id_curr_file << ", image Path: " << _file_list[_id_curr_file]);
     Frame::Ptr frame = _exiv2_reader.loadFrameFromExiv2(_id_node, _cam, _file_list[_id_curr_file]);
 
     // External pose can be provided
@@ -173,7 +182,7 @@ void Exiv2GrabberNode::spin()
   std::vector<std::string> new_file_list = getFileList(_path_grab);
   if (new_file_list.size() != _file_list.size())
   {
-    ROS_INFO_STREAM("Processed images in folder: " << _file_list.size() << " / " << new_file_list.size());
+    RCLCPP_INFO_STREAM(node->get_logger(),"Processed images in folder: " << _file_list.size() << " / " << new_file_list.size());
     std::set_difference(new_file_list.begin(), new_file_list.end(), _file_list.begin(), _file_list.end(), std::back_inserter(_file_list));
     std::sort(_file_list.begin(), _file_list.end());
   }
@@ -184,22 +193,22 @@ void Exiv2GrabberNode::spin()
 void Exiv2GrabberNode::pubFrame(const Frame::Ptr &frame)
 {
   // Create message header
-  std_msgs::Header header;
+  std_msgs::msg::Header header;
   header.stamp = ros::Time::now();
   header.frame_id = "map";
 
   // Create message informations
   realm_msgs::Frame msg_frame = to_ros::frame(header, frame);
-  sensor_msgs::Image msg_img = *to_ros::imageDisplay(header, frame->getImageRaw()).toImageMsg();
+  sensor_msgs::msg::Image msg_img = *to_ros::imageDisplay(header, frame->getImageRaw()).toImageMsg();
 
   _pub_frame.publish(msg_frame);
   _pub_image.publish(msg_img);
 }
 
-bool Exiv2GrabberNode::isOkay()
+/* bool Exiv2GrabberNode::isOkay()  // dont have a replacement for this
 {
   return _nh.ok();
-}
+} */
 
 std::vector<std::string> Exiv2GrabberNode::getFileList(const std::string& path)
 {

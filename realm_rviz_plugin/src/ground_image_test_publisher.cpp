@@ -1,11 +1,11 @@
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <ros/package.h>
 #include <geodesy/wgs84.h>
 #include <pcl/point_types.h>
@@ -19,11 +19,11 @@
 #include <iostream>     // std::cout
 #include <fstream>      // std::ifstream
 
-ros::Publisher pub;
+auto pub;
 
 void stickCallback(const realm_msgs::GroundImageCompressedPtr img) {
 
-    /*ROS_INFO("callb");
+    /*RCLCPP_INFO(node->get_logger(),"callb");
 
     custom_msgs::StitchedImageCompressed geo_image; // WARNING: custom_msgs does not exist anymore.
 
@@ -37,7 +37,7 @@ void stickCallback(const realm_msgs::GroundImageCompressedPtr img) {
     cv::imshow( "Display window", matrix );                   // Show our image inside it.
     cv::waitKey(33);
 
-	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", matrix).toImageMsg();
+	sensor_msgs::msg::ImagePtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", matrix).toImageMsg();
 
 	geo_image.image = *msg.get();
 	geographic_msgs::GeoPose p;
@@ -69,10 +69,10 @@ void stickCallback(const realm_msgs::GroundImageCompressedPtr img) {
 }
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "image_publisher");
-	ros::NodeHandle nh;
+	rclcpp::init(argc, argv, "image_publisher");
+	auto nh;
 
-	ros::Publisher pub_filteredImageData = nh.advertise <pcl::PointCloud<pcl::PointXYZRGB> > ("/denseCloud",1,true);
+	auto pub_filteredImageData = nh.advertise <pcl::PointCloud<pcl::PointXYZRGB> > ("/denseCloud",1,true);
 
     pub = nh.advertise<realm_msgs::GroundImageCompressed>("camera/ground_image", 1);
 	ros::Subscriber sub = nh.subscribe("/stitched_image", 1000, stickCallback);
@@ -148,13 +148,13 @@ int main(int argc, char** argv) {
 	pub_filteredImageData.publish(cloud);
 
 //	cv::waitKey(30);
-//	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "rgba8", image).toImageMsg();
+//	sensor_msgs::msg::ImagePtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "rgba8", image).toImageMsg();
 
 //	ground_image_plugin::GeoImage geo_image;
 //	geo_image.image = *msg.get();
 //	geo_image.header.frame_id = "map";
 //
-//	sensor_msgs::NavSatFix fix;
+//	sensor_msgs::msg::NavSatFix fix;
 //	fix.latitude = 10;
 //	fix.longitude = 20;
 //
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
 	trans.child_frame_id_ = "/image";
 	trans.setRotation(tf::Quaternion(0, 0, 0, 1));
 
-	ROS_INFO_STREAM("Trans x: " << cloud.points.at(0).x << "y: " << cloud.points.at(0).y);
+	RCLCPP_INFO_STREAM(node->get_logger(),"Trans x: " << cloud.points.at(0).x << "y: " << cloud.points.at(0).y);
 
 	trans.setOrigin(tf::Vector3(cloud.points.at(0).x, cloud.points.at(0).y, 0));
 
@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
 	//pub.publish(geo_image);
 	cloud.header.stamp = pcl_conversions::toPCL(ros::Time::now());
 	pub_filteredImageData.publish(cloud);
-	ros::Rate loop_rate(20);
+	rclcpp::Rate loop_rate(20);
 	while (nh.ok()) {
 		trans.stamp_ = ros::Time::now();
 		br.sendTransform(trans);

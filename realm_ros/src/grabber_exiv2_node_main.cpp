@@ -24,13 +24,12 @@ using namespace realm;
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "realm_exiv2_grabber_node");
+  rclcpp::init(argc, argv);
+  
+  std::shared_ptr<Exiv2GrabberNode> grabber_node = std::make_shared<Exiv2GrabberNode>("realm_exiv2_grabber_node");
 
-  Exiv2GrabberNode grabber_node;
-
-  while (grabber_node.isOkay())
+  while (rclcpp::ok())
   {
-    ros::spinOnce();
     grabber_node.spin();
   }
   ros::shutdown();
