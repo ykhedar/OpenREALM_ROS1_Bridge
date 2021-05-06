@@ -1,7 +1,7 @@
 #include <time.h>
 #include <string>
 #include <iostream>
-#include <ros/package.h>
+// #include <ros/package.h>
 
 #include <ORB_SLAM3/ORBVocabulary.h>
 using namespace std;
@@ -47,7 +47,7 @@ void save_as_binary(ORB_SLAM3::ORBVocabulary* voc, const std::string outfile) {
 int main(int argc, char **argv) {
   cout << "BoW load/save benchmark" << endl;
   ORB_SLAM3::ORBVocabulary* voc = new ORB_SLAM3::ORBVocabulary();
-  std::string path_work = ros::package::getPath("realm_ros");
+  std::string path_work = "~/realm_ws/src/OpenREALM_ROS2_bridge/realm_ros";"realm_ros");
 
   std::cout << "Opening file: " << path_work + std::string("/tools/ORBvoc.txt") << std::endl;
   std::cout << "Saving to file: " << path_work + std::string("/tools/ORBvoc.bin") << std::endl;

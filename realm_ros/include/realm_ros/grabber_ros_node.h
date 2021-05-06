@@ -25,8 +25,8 @@
 #include <mutex>
 
 #include <rclcpp/rclcpp.hpp>
-#include <ros/package.h>
-#include <rosbag/bag.h>
+// #include <ros/package.h>
+// #include <rosbag/bag.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
@@ -40,11 +40,11 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/imu.h>
+#include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <std_msgs/msg/float64.hpp>
-#include <realm_msgs/Frame.h>
-#include <realm_msgs/Pinhole.h>
+#include <realm_msgs/msg/frame.hpp>
+#include <realm_msgs/msg/pinhole.hpp>
 
 namespace realm
 {
@@ -107,19 +107,20 @@ private:
   message_filters::Subscriber<sensor_msgs::msg::NavSatFix> _sub_input_gnss;
   message_filters::Synchronizer<ApproxTimePolicy> _sync_topics;
 
-  rclcpp::Publisher<realm_msgs::Frame>::SharedPtr _pub_frame;
+  rclcpp::Publisher<realm_msgs::msg::Frame>::SharedPtr _pub_frame;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr _pub_imu;
 
   camera::Pinhole::Ptr _cam;
-  realm_msgs::Pinhole _cam_msg;
+  realm_msgs::msg::Pinhole _cam_msg;
 
+  void createParams();
   void readParameters();
   void setPaths();
 
-  void subHeading(const std_msgs::msg::Float64 &msg);
-  void subRelativeAltitude(const std_msgs::msg::Float64 &msg);
-  void subOrientation(const sensor_msgs::msg::Imu &msg);
-  void subImageGnss(const sensor_msgs::msg::ImageConstPtr &img, const sensor_msgs::msg::NavSatFixConstPtr &gnss);
+  void subHeading(const std_msgs::msg::Float64::SharedPtr msg);
+  void subRelativeAltitude(const std_msgs::msg::Float64::SharedPtr msg);
+  void subOrientation(const sensor_msgs::msg::Imu::SharedPtr msg);
+  void subImageGnss(const sensor_msgs::msg::Image::SharedPtr msg_img, const sensor_msgs::msg::NavSatFix::SharedPtr msg_gnss);
 
   void publish(const Frame::Ptr &frame);
 };

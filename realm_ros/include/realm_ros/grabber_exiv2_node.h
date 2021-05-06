@@ -22,10 +22,10 @@
 #define PROJECT_GRABBER_EXIV_NODE_H
 
 #include <iostream>
-
 #include <rclcpp/rclcpp.hpp>
-#include <ros/package.h> // Check this
-#include <rosbag/bag.h>  // Check this
+#include <time.h>
+// #include <ros/package.h> // Check this
+// #include <rosbag/bag.h>  // Check this
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 #include <boost/filesystem.hpp>
@@ -36,8 +36,8 @@
 #include <realm_io/utilities.h>
 
 #include <sensor_msgs/msg/image.hpp>
-#include <realm_msgs/Frame.h>
-#include <realm_msgs/Pinhole.h>
+#include <realm_msgs/msg/frame.hpp>
+#include <realm_msgs/msg/pinhole.hpp>
 
 namespace realm
 {
@@ -89,15 +89,16 @@ class Exiv2GrabberNode : public rclcpp::Node
 
     io::Exiv2FrameReader _exiv2_reader;
 
-    rclcpp::Publisher<realm_msgs::Frame>::SharedPtr _pub_frame;
+    rclcpp::Publisher<realm_msgs::msg::Frame>::SharedPtr _pub_frame;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image;
 
     camera::Pinhole::Ptr _cam;
-    realm_msgs::Pinhole _cam_msg;
+    realm_msgs::msg::Pinhole _cam_msg;
 
     size_t _id_curr_file;
     std::vector<std::string> _file_list;
 
+    void createParams();
     void readParams();
     void setPaths();
     void pubFrame(const Frame::Ptr &frame);

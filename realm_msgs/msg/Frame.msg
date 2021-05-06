@@ -1,11 +1,10 @@
 #######################################################
 # A message containing basic REALM frame informations #
 #######################################################
-
 ##################### Sensor data #####################
 # (required) Header containing message meta data
 std_msgs/Header header
-
+##################### Sensor data #####################
 # (required) Unique name/id of the acquiring camera
 std_msgs/String camera_id
 

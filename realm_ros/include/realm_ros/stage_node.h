@@ -26,8 +26,16 @@
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
-#include <tf/transform_broadcaster.h>
-#include <ros/package.h>
+
+#include <tf2/transform_datatypes.h>
+#include <tf2/convert.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2_ros/buffer_interface.h>
+#include <tf2_ros/transform_broadcaster.h>
+// #include <ros/package.h>
 
 #include <OpenREALM/realm_core/structs.h>
 #include <OpenREALM/realm_core/camera_settings_factory.h>
@@ -45,31 +53,33 @@
 
 #include <std_msgs/msg/string.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/imu.h>
+#include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <nav_msgs/msg/path.h>
-#include <visualization_msgs/msg/marker.h>
-#include <geometry_msgs/msg/pose_stamped.h>
+#include <nav_msgs/msg/path.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <realm_ros/conversions.h>
-#include <realm_msgs/Frame.h>
-#include <realm_msgs/CvGridMap.h>
-#include <realm_msgs/GroundImageCompressed.h>
+#include <realm_msgs/msg/frame.hpp>
+#include <realm_msgs/msg/cv_grid_map.hpp>
+#include <realm_msgs/msg/ground_image_compressed.hpp>
+#include <realm_msgs/msg/pose_stamped.hpp>
 
-#include <std_srvs/srv/rigger.h>
-#include <realm_msgs/ParameterChange.h>
+
+#include <std_srvs/srv/trigger.hpp>
+#include <realm_msgs/srv/parameter_change.hpp>
 
 namespace realm
 {
 
-class StageNode
+class StageNode : public rclcpp::Node
 {
   public:
     StageNode(int argc, char **argv);
     ~StageNode();
     void spin();
-    bool isOkay();
+    //bool isOkay();
   private:
     // Master stage has several privileges,
     // e.g. creating output folder, ...
@@ -90,20 +100,21 @@ class StageNode
     std::string _id_camera;
 
     // ros handle
-    auto _nh = rclcpp::Node::make_shared("talker");
+    // auto _nh = rclcpp::Node::make_shared("talker");
 
     // ros communication handles
-    ros::Subscriber _sub_input_frame;
-    ros::Subscriber _sub_input_imu;
-    ros::Subscriber _sub_output_dir;
-    std::unordered_map<std::string, auto> _publisher;
+    rclcpp::Subscription<realm_msgs::msg::Frame>::SharedPtr _sub_input_frame;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr _sub_input_imu;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _sub_output_dir;
+    std::unordered_map<std::string, rclcpp::Publisher<>::SharedPtr> _publisher;
 
     // ros service handles
-    ros::ServiceServer _srv_req_finish;
-    ros::ServiceServer _srv_req_stop;
-    ros::ServiceServer _srv_req_resume;
-    ros::ServiceServer _srv_req_reset;
-    ros::ServiceServer _srv_change_param;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srv_req_finish;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srv_req_stop;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srv_req_resume;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srv_req_reset;
+    rclcpp::Service<realm_msgs::srv::ParameterChange>::SharedPtr _srv_change_param;
+
 
     // chosen profile related to all settings set
     std::string _profile;
@@ -136,12 +147,12 @@ class StageNode
     bool _is_tf_stage_initialized;
     std::string _tf_base_frame_name;
     std::string _tf_stage_frame_name;
-    tf::Transform _tf_base;
-    tf::Transform _tf_stage;
+    tf2::Transform _tf_base;
+    tf2::Transform _tf_stage;
     sensor_msgs::msg::NavSatFix _gnss_base;
 
     // trajectories
-    std::unordered_map<std::string, std::vector<geometry_msgs::msg::PoseStamped>> _trajectories;
+    std::unordered_map<std::string, std::vector<realm_msgs::msg::PoseStamped>> _trajectories;
 
     // Settings of the stage
     StageSettings::Ptr _settings_stage;
@@ -165,10 +176,10 @@ class StageNode
     void linkStageTransport();
 
     // Functionalities
-    void reset();
+    // void reset();
 
     // ros communication functions
-    void subFrame(const realm_msgs::Frame &msg);
+    void subFrame(const realm_msgs::msg::Frame &msg);
     void subImu(const sensor_msgs::msg::Imu &msg);
     void subOutputPath(const std_msgs::msg::String &msg);
 
@@ -181,7 +192,7 @@ class StageNode
     void pubMesh(const std::vector<Face> &faces, const std::string &topic);
 
     // master publish
-    void pubTrajectory(const std::vector<geometry_msgs::msg::PoseStamped> &traj, const std::string &topic);
+    void pubTrajectory(const std::vector<realm_msgs::msg::PoseStamped> &traj, const std::string &topic);
 
     /*!
      * @brief Publisher for CvGridMaps as GroundImages. Should either contain one or two layers. The first layer
@@ -193,11 +204,11 @@ class StageNode
      */
     void pubCvGridMap(const CvGridMap &map, uint8_t zone, char band, const std::string &topic);
 
-    bool srvFinish(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-    bool srvStop(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-    bool srvResume(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-    bool srvReset(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-    bool srvChangeParam(realm_msgs::ParameterChange::Request &req, realm_msgs::ParameterChange::Response &res);
+    bool srvFinish(std_srvs::srv::Trigger::Request &req, std_srvs::srv::Trigger::Response &res);
+    bool srvStop(std_srvs::srv::Trigger::Request &req, std_srvs::srv::Trigger::Response &res);
+    bool srvResume(std_srvs::srv::Trigger::Request &req, std_srvs::srv::Trigger::Response &res);
+    bool srvReset(std_srvs::srv::Trigger::Request &req, std_srvs::srv::Trigger::Response &res);
+    bool srvChangeParam(realm_msgs::srv::ParameterChange::Request &req, realm_msgs::srv::ParameterChange::Response &res);
 };
 
 } // namespace realm

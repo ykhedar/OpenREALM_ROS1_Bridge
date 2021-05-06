@@ -24,16 +24,16 @@ using namespace realm;
 
 int main(int argc, char **argv)
 {
-  rclcpp::init(argc, argv);
+  rclcpp::init(argc, argv); // "realm_stage_node"
+  std::shared_ptr<StageNode> stage_node = std::make_shared<StageNode>();
 
-  StageNode node(argc, argv, "realm_stage_node");
   rclcpp::Rate rate(100);
-  while (node.isOkay())
+  while (rclcpp::ok())
   {
-    rclcpp::spin_some(node);
-    node.spin();
+    stage_node->spin();
     rate.sleep();
   }
-  ros::shutdown();
+  rclcpp::shutdown();
   return 0;
 }
+

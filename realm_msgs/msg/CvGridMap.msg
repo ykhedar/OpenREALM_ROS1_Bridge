@@ -1,5 +1,4 @@
-# Header for time and frame
-Header header
+std_msgs/Header header
 
 # CvGridMap uni resolution in x-/y-dir
 float64 resolution

@@ -24,17 +24,17 @@ using namespace realm;
 
 int main(int argc, char **argv)
 {
-  rclcpp::init(argc, argv);
-  std::shared_ptr<RosGrabberNode> grabber_node = std::make_shared<RosGrabberNode>("realm_ros_grabber_node");
+  rclcpp::init(argc, argv); // realm_ros_grabber_node
+  std::shared_ptr<RosGrabberNode> grabber_node = std::make_shared<RosGrabberNode>();
 
   rclcpp::Rate rate(10);
   
   while (rclcpp::ok())
   {
-    grabber_node.spin();
+    grabber_node->spin();
     rate.sleep();
   }
-  ros::shutdown();
+  rclcpp::shutdown();
 
   return 0;
 }

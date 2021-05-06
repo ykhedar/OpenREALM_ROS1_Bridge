@@ -23,7 +23,7 @@
 using namespace realm;
 
 RosGrabberNode::RosGrabberNode()
-  : _do_imu_passthrough(false),
+  : Node("realm_ros_grabber_node"), _do_imu_passthrough(false),
     _nrof_frames_received(0),
     _fps(1.0),
     _cam(nullptr),
@@ -35,7 +35,7 @@ RosGrabberNode::RosGrabberNode()
       .reliability(rmw_qos_reliability_policy_t::RMW_QOS_POLICY_RELIABILITY_RELIABLE)
       .durability(rmw_qos_durability_policy_t::RMW_QOS_POLICY_DURABILITY_VOLATILE)
       .avoid_ros_namespace_conventions(false);
-  
+  createParams();
   readParameters();
   setPaths();
 
@@ -45,7 +45,7 @@ RosGrabberNode::RosGrabberNode()
     throw(std::invalid_argument("Error loading camera file: Provided path does not exist."));
   _cam_msg = to_ros::pinhole(_cam);
 
-  RCLCPP_INFO_STREAM(node->get_logger(),
+  RCLCPP_INFO_STREAM(this->get_logger(),
           "ROS Grabber Node successfully loaded camera: "
                   << "\n\tfps = " << _fps
                   << "\n\tcx = " << _cam->cx()
@@ -59,21 +59,26 @@ RosGrabberNode::RosGrabberNode()
                   << "\n\tk3 = " << _cam->k3());
   _sub_heading = this->create_subscription<std_msgs::msg::Float64>(_topic_heading, qos_profile,
                 std::bind(&RosGrabberNode::subHeading, this, std::placeholders::_1));
-  _sub_relative_altitude = this->create_subscription<std_msgs::msg::Float64>(_topic_heading, qos_profile,
+
+  _sub_relative_altitude = this->create_subscription<std_msgs::msg::Float64>(_topic_relative_altitude, qos_profile,
                 std::bind(&RosGrabberNode::subRelativeAltitude, this, std::placeholders::_1));
-  _sub_orientation = this->create_subscription<std_msgs::msg::Imu>(_topic_heading, qos_profile,
+  _sub_orientation = this->create_subscription<sensor_msgs::msg::Imu>(_topic_orientation, qos_profile,
                 std::bind(&RosGrabberNode::subOrientation, this, std::placeholders::_1));
 
-  _sub_input_image.subscribe(_nh, _topic_image, 10);
-  _sub_input_gnss.subscribe(_nh, _topic_gnss, 10);
-  _sync_topics.registerCallback(boost::bind(&RosGrabberNode::subImageGnss, this, _1, _2));
+  
+  _sub_input_image.subscribe(this, _topic_image);
+  _sub_input_gnss.subscribe(this,_topic_gnss);
 
-  _pub_frame = this->create_publisher<realm_msgs::Frame>(_topic_out_frame, qos_profile);
+  // _sync_topics.registerCallback(boost::bind(RosGrabberNode::subImageGnss, this, std::placeholders::_1, std::placeholders::_2));
+  _sync_topics.registerCallback(&RosGrabberNode::subImageGnss, this);
+  //_sync_topics.registerCallback(RosGrabberNode::subImageGnss);
+
+  _pub_frame = this->create_publisher<realm_msgs::msg::Frame>(_topic_out_frame, qos_profile);
   
   if (_do_imu_passthrough)
     _pub_imu = this->create_publisher<sensor_msgs::msg::Imu>(_topic_out_imu, qos_profile); 
 
-  RCLCPP_INFO_STREAM(node->get_logger(),"ROS Grabber Node subscribed to topics:\n"
+  RCLCPP_INFO_STREAM(this->get_logger(),"ROS Grabber Node subscribed to topics:\n"
                   "- Image topic:\t\t"  << _topic_image   << "\n"
                   "- GNSS topic:\t\t"   << _topic_gnss    << "\n"
                   "- Heading topic:\t"  << _topic_heading << "\n"
@@ -83,21 +88,32 @@ RosGrabberNode::RosGrabberNode()
                   "- Output topic Frame:\t\t" << _topic_out_frame     << "\n");
 }
 
+void RosGrabberNode::createParams()
+{  
+  this->declare_parameter<std::string>("config/id", std::string("uninitialised"));
+  this->declare_parameter<std::string>("config/profile", std::string("uninitialised"));
+  this->declare_parameter<std::string>("config/opt/working_directory", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/image", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/gnss", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/heading", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/relative_altitude", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/orientation", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/out/frame", std::string("uninitialised"));
+  this->declare_parameter<std::string>("topic/out/imu", std::string("uninitialised"));
+}
+
 void RosGrabberNode::readParameters()
 {
-  
-  rclcpp::parameter_client::SyncParameterClient client(node);
-  
-  _id_node = client.get_parameter("config/id", std::string("uninitialised"));
-  _profile = client.get_parameter("config/profile", std::string("uninitialised"));
-  _path_working_directory = client.get_parameter("config/opt/working_directory", std::string("uninitialised"));
-  _topic_image = client.get_parameter("topic/image", std::string("uninitialised"));
-  _topic_gnss = client.get_parameter("topic/gnss", std::string("uninitialised"));
-  _topic_heading = client.get_parameter("topic/heading", std::string("uninitialised"));
-  _topic_relative_altitude = client.get_parameter("topic/relative_altitude", std::string("uninitialised"));
-  _topic_orientation = client.get_parameter("topic/orientation", std::string("uninitialised"));
-  _topic_out_frame = client.get_parameter("topic/out/frame", std::string("uninitialised"));
-  _topic_out_imu = client.get_parameter("topic/out/imu", std::string("uninitialised"));
+  this->get_parameter("config/id", _id_node);
+  this->get_parameter("config/profile", _profile);
+  this->get_parameter("config/opt/working_directory", _path_working_directory);
+  this->get_parameter("topic/image", _topic_image);
+  this->get_parameter("topic/gnss", _topic_gnss);
+  this->get_parameter("topic/heading", _topic_heading);
+  this->get_parameter("topic/relative_altitude", _topic_relative_altitude);
+  this->get_parameter("topic/orientation", _topic_orientation);
+  this->get_parameter("topic/out/frame", _topic_out_frame);
+  this->get_parameter("topic/out/imu", _topic_out_imu);
 
   if (_topic_out_imu != "uninitialised")
     _do_imu_passthrough = true;
@@ -109,7 +125,7 @@ void RosGrabberNode::readParameters()
 void RosGrabberNode::setPaths()
 {
   if (_path_working_directory == "uninitialised")
-    _path_working_directory = ros::package::getPath("realm_ros");
+    _path_working_directory = "~/realm_ws/src/OpenREALM_ROS2_bridge/realm_ros";
   _path_profile = _path_working_directory + "/profiles/" + _profile;
 
   _file_settings_camera = _path_profile + "/camera/calib.yaml";
@@ -129,31 +145,31 @@ void RosGrabberNode::spin()
   return _nh.ok();
 }
  */
-void RosGrabberNode::subHeading(const std_msgs::msg::Float64 &msg)
+void RosGrabberNode::subHeading(const std_msgs::msg::Float64::SharedPtr msg)
 {
   _mutex_heading.lock();
-  _heading = msg.data;
+  _heading = msg->data;
   _mutex_heading.unlock();
 }
 
-void RosGrabberNode::subRelativeAltitude(const std_msgs::msg::Float64 &msg)
+void RosGrabberNode::subRelativeAltitude(const std_msgs::msg::Float64::SharedPtr msg)
 {
   _mutex_relative_altitude.lock();
-  _relative_altitude = msg.data;
+  _relative_altitude = msg->data;
   _mutex_relative_altitude.unlock();
 }
 
-void RosGrabberNode::subOrientation(const sensor_msgs::msg::Imu &msg)
+void RosGrabberNode::subOrientation(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
   _mutex_orientation.lock();
-  _orientation = to_realm::orientation(msg.orientation);
+  _orientation = to_realm::orientation(msg->orientation);
   _mutex_orientation.unlock();
 
   if (_do_imu_passthrough)
-    _pub_imu.publish(msg);
+    _pub_imu->publish(*msg);
 }
 
-void RosGrabberNode::subImageGnss(const sensor_msgs::msg::ImageConstPtr &msg_img, const sensor_msgs::msg::NavSatFixConstPtr &msg_gnss)
+void RosGrabberNode::subImageGnss(const sensor_msgs::msg::Image::SharedPtr msg_img, const sensor_msgs::msg::NavSatFix::SharedPtr msg_gnss)
 {
   cv::Mat img = to_realm::image(*msg_img);
 
@@ -180,9 +196,9 @@ void RosGrabberNode::subImageGnss(const sensor_msgs::msg::ImageConstPtr &msg_img
   auto frame = std::make_shared<Frame>(_id_node, _nrof_frames_received, msg_img->header.stamp.sec, img, utm, _cam, orientation);
 
   std_msgs::msg::Header header;
-  header.stamp = ros::Time::now();
+  header.stamp = this->now();
   header.frame_id = "/realm";
-  _pub_frame.publish(to_ros::frame(header, frame));
+  _pub_frame->publish(to_ros::frame(header, frame));
 
   _nrof_frames_received++;
 }
